@@ -87,6 +87,58 @@ def remover_json_da_resposta(resposta: str) -> str:
     return re.sub(r"\{[\s\S]*\}", "", str(resposta)).strip()
 
 
+def limpar_markdown(texto: str) -> str:
+    texto = texto.replace("\\n", "\n")
+    texto = re.sub(r"```markdown", "", texto, flags=re.IGNORECASE)
+    texto = re.sub(r"```", "", texto)
+    texto = re.sub(r"^\s*Final Answer:\s*", "", texto, flags=re.IGNORECASE)
+    texto = texto.strip()
+    return texto
+
+
+def renderizar_analise_amigavel(markdown_analise: str):
+    markdown_analise = limpar_markdown(markdown_analise)
+
+    st.markdown(
+        """
+        <style>
+            .analise-container {
+                background-color: #ffffff;
+                border: 1px solid #e6e9ef;
+                border-radius: 14px;
+                padding: 26px;
+                margin-top: 12px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            }
+            .analise-container h1,
+            .analise-container h2,
+            .analise-container h3 {
+                color: #1f2937;
+                margin-top: 1.1rem;
+                margin-bottom: 0.6rem;
+            }
+            .analise-container p,
+            .analise-container li {
+                font-size: 16px;
+                line-height: 1.65;
+                color: #374151;
+            }
+            .analise-container ul {
+                margin-top: 0.4rem;
+                margin-bottom: 0.8rem;
+            }
+            .analise-container strong {
+                color: #111827;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    with st.container(border=True):
+        st.markdown(markdown_analise)
+
+
 def converter_payload_para_supabase(payload: dict) -> dict:
     return {
         "id_externo": payload.get("id_externo"),
@@ -209,12 +261,12 @@ if st.button("Analisar solicitação", type="primary"):
 
             resultado_texto = str(resultado)
             payload_json = extrair_json_da_resposta(resultado_texto)
-            markdown_analise = remover_json_da_resposta(resultado_texto)
+            markdown_analise = limpar_markdown(remover_json_da_resposta(resultado_texto))
 
             st.success("Análise concluída com sucesso!")
 
-            st.markdown("## Análise")
-            st.markdown(markdown_analise)
+            st.markdown("## Análise estruturada")
+            renderizar_analise_amigavel(markdown_analise)
 
             st.download_button(
                 label="Baixar análise em Markdown",
@@ -247,14 +299,12 @@ if st.button("Analisar solicitação", type="primary"):
                     else:
                         try:
                             with st.spinner("Enviando payload para API de backlog..."):
-                                retorno_api = enviar_payload_para_backlog(
+                                enviar_payload_para_backlog(
                                     payload_json,
                                     api_url_editavel
                                 )
 
                             st.success("Payload enviado com sucesso para o sistema de backlog.")
-                            st.caption("Retorno da API:")
-                            st.json(retorno_api)
 
                         except Exception as api_error:
                             st.warning(
