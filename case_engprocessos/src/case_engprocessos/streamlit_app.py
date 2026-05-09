@@ -414,7 +414,7 @@ if st.button("Analisar solicitação", type="primary"):
 
             st.success("Análise concluída com sucesso!")
 
-            st.markdown("## Análise estruturada")
+            st.markdown("## Síntese:")
             renderizar_analise_amigavel(markdown_analise)
 
             pdf_analise = gerar_pdf_analise(markdown_analise)
