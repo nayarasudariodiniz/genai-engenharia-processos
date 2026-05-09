@@ -61,6 +61,10 @@ def build_inputs(solicitacao: str) -> dict:
         A saída final deve conter:
         1. Relatório executivo em Markdown;
         2. Payload JSON válido para integração via API com sistema de backlog da Engenharia de Processos.
+
+        Importante:
+        - O relatório executivo não deve exibir o payload JSON.
+        - O JSON deve ser gerado apenas para integração sistêmica.
         """
     }
 
@@ -87,11 +91,35 @@ def remover_json_da_resposta(resposta: str) -> str:
     return re.sub(r"\{[\s\S]*\}", "", str(resposta)).strip()
 
 
+def remover_secao_payload_do_markdown(texto: str) -> str:
+    """
+    Remove da análise renderizada qualquer seção textual residual
+    relacionada ao payload JSON.
+    """
+    padroes = [
+        r"(?is)#{1,6}\s*Payload JSON para Integração com Backlog.*?(?=#{1,6}\s|\Z)",
+        r"(?is)#{1,6}\s*Payload JSON.*?(?=#{1,6}\s|\Z)",
+        r"(?is)\*\*Payload JSON para Integração com Backlog\*\*.*?(?=\n\s*\*\*|\n\s*#{1,6}\s|\Z)",
+        r"(?is)Payload JSON para Integração com Backlog\s*json\s*",
+    ]
+
+    texto_limpo = texto
+
+    for padrao in padroes:
+        texto_limpo = re.sub(padrao, "", texto_limpo).strip()
+
+    texto_limpo = re.sub(r"(?im)^\s*json\s*$", "", texto_limpo).strip()
+
+    return texto_limpo
+
+
 def limpar_markdown(texto: str) -> str:
     texto = texto.replace("\\n", "\n")
     texto = re.sub(r"```markdown", "", texto, flags=re.IGNORECASE)
+    texto = re.sub(r"```json[\s\S]*?```", "", texto, flags=re.IGNORECASE)
     texto = re.sub(r"```", "", texto)
     texto = re.sub(r"^\s*Final Answer:\s*", "", texto, flags=re.IGNORECASE)
+    texto = remover_secao_payload_do_markdown(texto)
     texto = texto.strip()
     return texto
 
@@ -261,7 +289,9 @@ if st.button("Analisar solicitação", type="primary"):
 
             resultado_texto = str(resultado)
             payload_json = extrair_json_da_resposta(resultado_texto)
-            markdown_analise = limpar_markdown(remover_json_da_resposta(resultado_texto))
+
+            markdown_analise = remover_json_da_resposta(resultado_texto)
+            markdown_analise = limpar_markdown(markdown_analise)
 
             st.success("Análise concluída com sucesso!")
 
@@ -279,12 +309,6 @@ if st.button("Analisar solicitação", type="primary"):
             st.markdown("## Integração com backlog")
 
             if payload_json:
-                st.info(
-                    "Payload JSON de integração gerado com sucesso. "
-                    "Ele não será exibido na tela, mas está disponível para download "
-                    "ou envio futuro via API."
-                )
-
                 st.download_button(
                     label="Baixar payload JSON de integração",
                     data=json.dumps(payload_json, ensure_ascii=False, indent=2),
@@ -295,7 +319,6 @@ if st.button("Analisar solicitação", type="primary"):
                 if modo_integracao:
                     if simular_envio:
                         st.success("Envio simulado com sucesso. Nenhuma API real foi chamada.")
-                        st.caption(f"URL configurada: {api_url_editavel}")
                     else:
                         try:
                             with st.spinner("Enviando payload para API de backlog..."):
