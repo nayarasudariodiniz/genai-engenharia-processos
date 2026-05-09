@@ -1,0 +1,13 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.DS_Store
+.idea/
+.vscode/
+*.log
+solicitacao_final.md
+solicitacao_final.pdf

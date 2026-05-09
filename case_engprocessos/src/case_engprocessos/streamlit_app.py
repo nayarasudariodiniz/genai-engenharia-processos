@@ -1,0 +1,288 @@
+import os
+import re
+import json
+import requests
+import streamlit as st
+
+from datetime import datetime
+from pypdf import PdfReader
+from crew import CaseEngprocessos
+
+
+API_BACKLOG_URL = os.getenv(
+    "API_BACKLOG_URL",
+    "https://api-interna-banco/backlog/processos"
+)
+
+API_BACKLOG_TOKEN = os.getenv("API_BACKLOG_TOKEN", "")
+
+
+def extrair_texto_pdf(arquivo_pdf) -> str:
+    reader = PdfReader(arquivo_pdf)
+    texto = ""
+
+    for page in reader.pages:
+        page_text = page.extract_text()
+        if page_text:
+            texto += page_text + "\n"
+
+    return texto.strip()
+
+
+def build_inputs(solicitacao: str) -> dict:
+    return {
+        "topic": solicitacao,
+        "current_year": str(datetime.now().year),
+
+        "contexto_organizacional": """
+        Banco de grande porte, com múltiplas áreas de negócio, alto volume de solicitações operacionais
+        e atuação transversal da Engenharia de Processos.
+        """,
+
+        "desafio": """
+        Receber solicitações textuais não estruturadas;
+        identificar possíveis gargalos e causas;
+        classificar criticidade e prioridade;
+        sugerir análises ou abordagens iniciais;
+        gerar uma saída estruturada para apoio à tomada de decisão.
+        """,
+
+        "dor_principal": """
+        Solicitações recebidas de forma manual e não estruturada, gerando alto tempo de análise inicial,
+        retrabalho, dificuldade de priorização, falta de padronização, dependência de conhecimento tácito
+        e baixa rastreabilidade.
+        """,
+
+        "objetivo_da_solucao": """
+        Transformar uma solicitação operacional não estruturada em uma saída estruturada, rastreável e acionável,
+        contendo criticidade, impacto operacional, gargalos, hipóteses de causa-raiz e abordagem recomendada.
+        """,
+
+        "criterios_de_analise": """
+        Considerar impacto operacional, financeiro, regulatório, risco operacional, experiência do cliente,
+        volume, recorrência, SLA, retrabalho, handoffs, falhas sistêmicas, padronização, rastreabilidade e governança.
+        """,
+
+        "metodologias_recomendadas": """
+        Lean, BPM, SIPOC, Ishikawa, 5 Porquês, análise de gargalos, análise de handoffs,
+        priorização por criticidade e identificação de quick wins.
+        """,
+
+        "formato_esperado_saida": """
+        A saída final deve conter:
+        1. Relatório executivo em Markdown;
+        2. Payload JSON válido para integração via API com sistema de backlog da Engenharia de Processos.
+
+        O JSON deve conter:
+        - id_externo;
+        - data_criacao;
+        - origem;
+        - tipo_registro;
+        - solicitacao;
+        - classificacao;
+        - diagnostico;
+        - recomendacao;
+        - governanca.
+        """
+    }
+
+
+def executar_crew(solicitacao: str):
+    inputs = build_inputs(solicitacao)
+    result = CaseEngprocessos().crew().kickoff(inputs=inputs)
+    return result
+
+
+def extrair_json_da_resposta(resposta: str):
+    texto = str(resposta)
+
+    match = re.search(r"\{[\s\S]*\}", texto)
+
+    if not match:
+        return None
+
+    try:
+        return json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return None
+
+
+def remover_json_da_resposta(resposta: str) -> str:
+    texto = str(resposta)
+    texto_sem_json = re.sub(r"\{[\s\S]*\}", "", texto).strip()
+    return texto_sem_json
+
+
+def enviar_payload_para_backlog(payload: dict, api_url: str):
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    if API_BACKLOG_TOKEN:
+        headers["Authorization"] = f"Bearer {API_BACKLOG_TOKEN}"
+
+    response = requests.post(
+        api_url,
+        json=payload,
+        headers=headers,
+        timeout=30
+    )
+
+    response.raise_for_status()
+    return response.json()
+
+
+st.set_page_config(
+    page_title="Triagem Inteligente - Engenharia de Processos",
+    page_icon="🏦",
+    layout="wide"
+)
+
+st.title("🏦 Triagem Inteligente de Solicitações")
+st.subheader("IA Generativa aplicada à Engenharia de Processos Bancários")
+
+st.markdown("""
+Esta aplicação recebe solicitações não estruturadas das áreas de negócio e utiliza uma crew multiagente
+para identificar criticidade, impacto operacional, gargalos, possíveis causas-raiz e abordagem recomendada.
+""")
+
+with st.sidebar:
+    st.header("Integração futura via API")
+
+    modo_integracao = st.toggle(
+        "Habilitar envio para API de backlog",
+        value=False
+    )
+
+    st.caption(
+        "Quando habilitado, o payload JSON gerado pela análise poderá ser enviado "
+        "para um sistema de backlog da Engenharia de Processos."
+    )
+
+    api_url_editavel = st.text_input(
+        "URL da API de backlog",
+        value=API_BACKLOG_URL
+    )
+
+    simular_envio = st.toggle(
+        "Simular envio sem chamar API real",
+        value=True
+    )
+
+
+tipo_entrada = st.radio(
+    "Como deseja informar a solicitação?",
+    ["Texto livre", "E-mail colado", "PDF"]
+)
+
+solicitacao = ""
+
+if tipo_entrada == "Texto livre":
+    solicitacao = st.text_area(
+        "Digite a solicitação não estruturada:",
+        height=220,
+        placeholder="Ex: O processo de onboarding está demorando muito..."
+    )
+
+elif tipo_entrada == "E-mail colado":
+    solicitacao = st.text_area(
+        "Cole aqui o conteúdo do e-mail:",
+        height=260,
+        placeholder="Cole o corpo do e-mail recebido pela área de negócio..."
+    )
+
+elif tipo_entrada == "PDF":
+    arquivo_pdf = st.file_uploader(
+        "Faça upload do PDF contendo a solicitação:",
+        type=["pdf"]
+    )
+
+    if arquivo_pdf is not None:
+        solicitacao = extrair_texto_pdf(arquivo_pdf)
+
+        with st.expander("Texto extraído do PDF"):
+            st.write(solicitacao)
+
+
+if st.button("Analisar solicitação", type="primary"):
+    if not solicitacao.strip():
+        st.warning("Informe uma solicitação antes de executar a análise.")
+    else:
+        with st.spinner("Executando análise multiagente..."):
+            try:
+                resultado = executar_crew(solicitacao)
+
+                resultado_texto = str(resultado)
+
+                payload_json = extrair_json_da_resposta(resultado_texto)
+
+                markdown_analise = remover_json_da_resposta(resultado_texto)
+
+                st.success("Análise concluída com sucesso!")
+
+                st.markdown("## Análise")
+
+                # Renderização bonita do Markdown
+                st.markdown(markdown_analise)
+
+                st.download_button(
+                    label="Baixar análise em Markdown",
+                    data=markdown_analise,
+                    file_name="analise_solicitacao.md",
+                    mime="text/markdown"
+                )
+
+                st.markdown("---")
+                st.markdown("## Integração com backlog")
+
+                if payload_json:
+                    st.info(
+                        "Payload JSON de integração gerado com sucesso. "
+                        "Ele não será exibido na tela, mas está disponível para download "
+                        "ou envio futuro via API."
+                    )
+
+                    st.download_button(
+                        label="Baixar payload JSON de integração",
+                        data=json.dumps(payload_json, ensure_ascii=False, indent=2),
+                        file_name="payload_backlog.json",
+                        mime="application/json"
+                    )
+
+                    if modo_integracao:
+                        if simular_envio:
+                            st.success(
+                                "Envio simulado com sucesso. Nenhuma API real foi chamada."
+                            )
+
+                            st.caption(
+                                f"URL configurada: {api_url_editavel}"
+                            )
+
+                        else:
+                            with st.spinner(
+                                "Enviando payload para API de backlog..."
+                            ):
+
+                                retorno_api = enviar_payload_para_backlog(
+                                    payload_json,
+                                    api_url_editavel
+                                )
+
+                            st.success(
+                                "Payload enviado com sucesso para o sistema de backlog."
+                            )
+
+                            st.caption("Retorno da API:")
+                            st.json(retorno_api)
+
+                else:
+                    st.warning(
+                        "A análise foi concluída, mas não foi possível localizar "
+                        "um payload JSON válido."
+                    )
+
+            except Exception as e:
+                st.error("Erro ao executar a análise.")
+                st.exception(e)
+
