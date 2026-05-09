@@ -4,9 +4,17 @@ import json
 import requests
 import streamlit as st
 
+from io import BytesIO
 from datetime import datetime
+from html import escape
 from pypdf import PdfReader
 from crew import CaseEngprocessos
+
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_LEFT
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 
 
 API_BACKLOG_URL = os.getenv("API_BACKLOG_URL", "")
@@ -92,10 +100,6 @@ def remover_json_da_resposta(resposta: str) -> str:
 
 
 def remover_secao_payload_do_markdown(texto: str) -> str:
-    """
-    Remove da análise renderizada qualquer seção textual residual
-    relacionada ao payload JSON.
-    """
     padroes = [
         r"(?is)#{1,6}\s*Payload JSON para Integração com Backlog.*?(?=#{1,6}\s|\Z)",
         r"(?is)#{1,6}\s*Payload JSON.*?(?=#{1,6}\s|\Z)",
@@ -165,6 +169,121 @@ def renderizar_analise_amigavel(markdown_analise: str):
 
     with st.container(border=True):
         st.markdown(markdown_analise)
+
+
+def markdown_para_html_basico(texto: str) -> str:
+    texto = escape(texto)
+    texto = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", texto)
+    texto = re.sub(r"\*(.*?)\*", r"<i>\1</i>", texto)
+    return texto
+
+
+def gerar_pdf_analise(markdown_analise: str) -> bytes:
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=42,
+        leftMargin=42,
+        topMargin=48,
+        bottomMargin=42
+    )
+
+    styles = getSampleStyleSheet()
+
+    titulo_style = ParagraphStyle(
+        "TituloPrincipal",
+        parent=styles["Title"],
+        fontName="Helvetica-Bold",
+        fontSize=18,
+        leading=22,
+        textColor=colors.HexColor("#111827"),
+        spaceAfter=16,
+        alignment=TA_LEFT
+    )
+
+    h1_style = ParagraphStyle(
+        "H1",
+        parent=styles["Heading1"],
+        fontName="Helvetica-Bold",
+        fontSize=15,
+        leading=19,
+        textColor=colors.HexColor("#1f2937"),
+        spaceBefore=14,
+        spaceAfter=8
+    )
+
+    h2_style = ParagraphStyle(
+        "H2",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=13,
+        leading=17,
+        textColor=colors.HexColor("#1f2937"),
+        spaceBefore=12,
+        spaceAfter=7
+    )
+
+    body_style = ParagraphStyle(
+        "Body",
+        parent=styles["BodyText"],
+        fontName="Helvetica",
+        fontSize=10.5,
+        leading=15,
+        textColor=colors.HexColor("#374151"),
+        spaceAfter=7
+    )
+
+    bullet_style = ParagraphStyle(
+        "Bullet",
+        parent=body_style,
+        leftIndent=16,
+        firstLineIndent=-8,
+        spaceAfter=5
+    )
+
+    elementos = [
+        Paragraph("Análise Estruturada da Solicitação", titulo_style),
+        Paragraph(
+            f"Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+            body_style
+        ),
+        Spacer(1, 12)
+    ]
+
+    linhas = markdown_analise.splitlines()
+
+    for linha in linhas:
+        linha = linha.strip()
+
+        if not linha:
+            elementos.append(Spacer(1, 6))
+            continue
+
+        if linha.startswith("# "):
+            elementos.append(Paragraph(markdown_para_html_basico(linha.replace("# ", "", 1)), h1_style))
+
+        elif linha.startswith("## "):
+            elementos.append(Paragraph(markdown_para_html_basico(linha.replace("## ", "", 1)), h1_style))
+
+        elif linha.startswith("### "):
+            elementos.append(Paragraph(markdown_para_html_basico(linha.replace("### ", "", 1)), h2_style))
+
+        elif linha.startswith("- "):
+            elementos.append(Paragraph("• " + markdown_para_html_basico(linha.replace("- ", "", 1)), bullet_style))
+
+        elif re.match(r"^\d+\.\s", linha):
+            elementos.append(Paragraph(markdown_para_html_basico(linha), bullet_style))
+
+        else:
+            elementos.append(Paragraph(markdown_para_html_basico(linha), body_style))
+
+    doc.build(elementos)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+
+    return pdf_bytes
 
 
 def converter_payload_para_supabase(payload: dict) -> dict:
@@ -298,11 +417,13 @@ if st.button("Analisar solicitação", type="primary"):
             st.markdown("## Análise estruturada")
             renderizar_analise_amigavel(markdown_analise)
 
+            pdf_analise = gerar_pdf_analise(markdown_analise)
+
             st.download_button(
-                label="Baixar análise em Markdown",
-                data=markdown_analise,
-                file_name="analise_solicitacao.md",
-                mime="text/markdown"
+                label="Baixar análise em PDF",
+                data=pdf_analise,
+                file_name="analise_solicitacao.pdf",
+                mime="application/pdf"
             )
 
             st.markdown("---")
