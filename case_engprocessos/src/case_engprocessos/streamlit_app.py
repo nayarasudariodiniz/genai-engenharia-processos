@@ -100,11 +100,25 @@ def remover_json_da_resposta(resposta: str) -> str:
 
 
 def remover_secao_payload_do_markdown(texto: str) -> str:
+    """
+    Remove da análise renderizada qualquer seção residual
+    relacionada ao payload JSON.
+    """
+
     padroes = [
         r"(?is)#{1,6}\s*Payload JSON para Integração com Backlog.*?(?=#{1,6}\s|\Z)",
         r"(?is)#{1,6}\s*Payload JSON.*?(?=#{1,6}\s|\Z)",
         r"(?is)\*\*Payload JSON para Integração com Backlog\*\*.*?(?=\n\s*\*\*|\n\s*#{1,6}\s|\Z)",
         r"(?is)Payload JSON para Integração com Backlog\s*json\s*",
+
+        # Remove PARTE 2
+        r"(?is)-+\s*PARTE\s*2\s*[—-]\s*JSON\s*DE\s*INTEGRAÇÃO\s*-+.*",
+
+        # Remove qualquer conteúdo após PARTE 2
+        r"(?is)PARTE\s*2\s*[—-]\s*JSON\s*DE\s*INTEGRAÇÃO.*",
+
+        # Remove JSON residual
+        r"(?s)\{.*\}"
     ]
 
     texto_limpo = texto
