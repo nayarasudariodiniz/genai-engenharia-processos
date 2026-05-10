@@ -21,6 +21,23 @@ API_BACKLOG_URL = os.getenv("API_BACKLOG_URL", "")
 API_BACKLOG_TOKEN = os.getenv("API_BACKLOG_TOKEN", "")
 
 
+SECOES_ANALISE = {
+    "resumo_executivo_secao": "1. Resumo Executivo",
+    "solicitacao_normalizada": "2. Solicitação Normalizada",
+    "processo_impactado_secao": "3. Processo Impactado",
+    "areas_envolvidas": "4. Áreas Envolvidas",
+    "sistemas_mencionados": "5. Sistemas Mencionados",
+    "gargalos_identificados_secao": "6. Gargalos Identificados",
+    "causas_raiz_secao": "7. Possíveis Causas-Raiz",
+    "criticidade_prioridade_secao": "8. Criticidade e Prioridade",
+    "impactos_operacionais_secao": "9. Impactos Operacionais",
+    "abordagem_recomendada_secao": "10. Abordagem Recomendada",
+    "quick_wins": "11. Quick Wins",
+    "proximos_passos_secao": "12. Próximos Passos",
+    "encaminhamento_recomendado": "13. Encaminhamento Recomendado",
+}
+
+
 def extrair_texto_pdf(arquivo_pdf) -> str:
     reader = PdfReader(arquivo_pdf)
     texto = ""
@@ -100,25 +117,14 @@ def remover_json_da_resposta(resposta: str) -> str:
 
 
 def remover_secao_payload_do_markdown(texto: str) -> str:
-    """
-    Remove da análise renderizada qualquer seção residual
-    relacionada ao payload JSON.
-    """
-
     padroes = [
         r"(?is)#{1,6}\s*Payload JSON para Integração com Backlog.*?(?=#{1,6}\s|\Z)",
         r"(?is)#{1,6}\s*Payload JSON.*?(?=#{1,6}\s|\Z)",
         r"(?is)\*\*Payload JSON para Integração com Backlog\*\*.*?(?=\n\s*\*\*|\n\s*#{1,6}\s|\Z)",
         r"(?is)Payload JSON para Integração com Backlog\s*json\s*",
-
-        # Remove PARTE 2
         r"(?is)-+\s*PARTE\s*2\s*[—-]\s*JSON\s*DE\s*INTEGRAÇÃO\s*-+.*",
-
-        # Remove qualquer conteúdo após PARTE 2
         r"(?is)PARTE\s*2\s*[—-]\s*JSON\s*DE\s*INTEGRAÇÃO.*",
-
-        # Remove JSON residual
-        r"(?s)\{.*\}"
+        r"(?s)\{.*\}",
     ]
 
     texto_limpo = texto
@@ -138,51 +144,25 @@ def limpar_markdown(texto: str) -> str:
     texto = re.sub(r"```", "", texto)
     texto = re.sub(r"^\s*Final Answer:\s*", "", texto, flags=re.IGNORECASE)
     texto = remover_secao_payload_do_markdown(texto)
-    texto = texto.strip()
-    return texto
+    return texto.strip()
 
 
-def renderizar_analise_amigavel(markdown_analise: str):
-    markdown_analise = limpar_markdown(markdown_analise)
+def extrair_secao(markdown_texto: str, titulo_secao: str) -> str:
+    padrao = rf"(?is)##\s*{re.escape(titulo_secao)}\s*(.*?)(?=\n##\s*\d+\.|\Z)"
+    match = re.search(padrao, markdown_texto)
 
-    st.markdown(
-        """
-        <style>
-            .analise-container {
-                background-color: #ffffff;
-                border: 1px solid #e6e9ef;
-                border-radius: 14px;
-                padding: 26px;
-                margin-top: 12px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-            }
-            .analise-container h1,
-            .analise-container h2,
-            .analise-container h3 {
-                color: #1f2937;
-                margin-top: 1.1rem;
-                margin-bottom: 0.6rem;
-            }
-            .analise-container p,
-            .analise-container li {
-                font-size: 16px;
-                line-height: 1.65;
-                color: #374151;
-            }
-            .analise-container ul {
-                margin-top: 0.4rem;
-                margin-bottom: 0.8rem;
-            }
-            .analise-container strong {
-                color: #111827;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    if not match:
+        return "não informado"
 
-    with st.container(border=True):
-        st.markdown(markdown_analise)
+    conteudo = match.group(1).strip()
+    return conteudo if conteudo else "não informado"
+
+
+def extrair_secoes_analise(markdown_analise: str) -> dict:
+    return {
+        coluna: extrair_secao(markdown_analise, titulo)
+        for coluna, titulo in SECOES_ANALISE.items()
+    }
 
 
 def markdown_para_html_basico(texto: str) -> str:
@@ -266,9 +246,7 @@ def gerar_pdf_analise(markdown_analise: str) -> bytes:
         Spacer(1, 12)
     ]
 
-    linhas = markdown_analise.splitlines()
-
-    for linha in linhas:
+    for linha in markdown_analise.splitlines():
         linha = linha.strip()
 
         if not linha:
@@ -276,22 +254,29 @@ def gerar_pdf_analise(markdown_analise: str) -> bytes:
             continue
 
         if linha.startswith("# "):
-            elementos.append(Paragraph(markdown_para_html_basico(linha.replace("# ", "", 1)), h1_style))
-
+            elementos.append(
+                Paragraph(markdown_para_html_basico(linha.replace("# ", "", 1)), h1_style)
+            )
         elif linha.startswith("## "):
-            elementos.append(Paragraph(markdown_para_html_basico(linha.replace("## ", "", 1)), h1_style))
-
+            elementos.append(
+                Paragraph(markdown_para_html_basico(linha.replace("## ", "", 1)), h1_style)
+            )
         elif linha.startswith("### "):
-            elementos.append(Paragraph(markdown_para_html_basico(linha.replace("### ", "", 1)), h2_style))
-
+            elementos.append(
+                Paragraph(markdown_para_html_basico(linha.replace("### ", "", 1)), h2_style)
+            )
         elif linha.startswith("- "):
-            elementos.append(Paragraph("• " + markdown_para_html_basico(linha.replace("- ", "", 1)), bullet_style))
-
+            elementos.append(
+                Paragraph("• " + markdown_para_html_basico(linha.replace("- ", "", 1)), bullet_style)
+            )
         elif re.match(r"^\d+\.\s", linha):
-            elementos.append(Paragraph(markdown_para_html_basico(linha), bullet_style))
-
+            elementos.append(
+                Paragraph(markdown_para_html_basico(linha), bullet_style)
+            )
         else:
-            elementos.append(Paragraph(markdown_para_html_basico(linha), body_style))
+            elementos.append(
+                Paragraph(markdown_para_html_basico(linha), body_style)
+            )
 
     doc.build(elementos)
     pdf_bytes = buffer.getvalue()
@@ -300,13 +285,24 @@ def gerar_pdf_analise(markdown_analise: str) -> bytes:
     return pdf_bytes
 
 
-def converter_payload_para_supabase(payload: dict) -> dict:
+def converter_payload_para_supabase(
+    payload: dict,
+    nome: str,
+    email: str,
+    area_negocio: str,
+    markdown_analise: str
+) -> dict:
     solicitacao = payload.get("solicitacao", {})
     classificacao = payload.get("classificacao", {})
     diagnostico = payload.get("diagnostico", {})
     recomendacao = payload.get("recomendacao", {})
 
+    secoes = extrair_secoes_analise(markdown_analise)
+
     return {
+        "nome": nome,
+        "email": email,
+        "area_negocio": area_negocio,
         "id_externo": payload.get("id_externo", "não informado"),
         "criticidade": classificacao.get("criticidade", "não informado"),
         "score_criticidade": classificacao.get("score_criticidade", 0),
@@ -314,18 +310,33 @@ def converter_payload_para_supabase(payload: dict) -> dict:
         "resumo_executivo": solicitacao.get("resumo_executivo", "não informado"),
         "impacto_operacional": diagnostico.get("impacto_operacional", "não informado"),
         "abordagem_recomendada": recomendacao.get("abordagem_recomendada", "não informado"),
-        "payload": payload
+        "analise_completa": markdown_analise,
+        "payload": payload,
+        **secoes
     }
 
 
-def enviar_payload_para_backlog(payload: dict, api_url: str):
+def enviar_payload_para_backlog(
+    payload: dict,
+    api_url: str,
+    nome: str,
+    email: str,
+    area_negocio: str,
+    markdown_analise: str
+):
     if not API_BACKLOG_TOKEN:
         raise ValueError("API_BACKLOG_TOKEN não configurado nos Secrets do Streamlit.")
 
     if not api_url:
         raise ValueError("API_BACKLOG_URL não configurada.")
 
-    payload_supabase = converter_payload_para_supabase(payload)
+    payload_supabase = converter_payload_para_supabase(
+        payload=payload,
+        nome=nome,
+        email=email,
+        area_negocio=area_negocio,
+        markdown_analise=markdown_analise
+    )
 
     headers = {
         "apikey": API_BACKLOG_TOKEN,
@@ -345,6 +356,10 @@ def enviar_payload_para_backlog(payload: dict, api_url: str):
     return response.json()
 
 
+def validar_email(email: str) -> bool:
+    return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email))
+
+
 st.set_page_config(
     page_title="Triagem Inteligente - Engenharia de Processos",
     page_icon="🏦",
@@ -352,40 +367,30 @@ st.set_page_config(
 )
 
 st.title("🏦 Triagem Inteligente de Solicitações")
-st.subheader("IA Generativa aplicada à Engenharia de Processos Bancários")
+st.subheader("IA Generativa aplicada à Engenharia de Processos")
 
 st.markdown("""
 Esta aplicação recebe solicitações não estruturadas das áreas de negócio e utiliza uma crew multiagente
 para identificar criticidade, impacto operacional, gargalos, possíveis causas-raiz e abordagem recomendada.
 """)
 
-with st.sidebar:
-    st.header("Integração futura via API")
+st.markdown("### Dados do solicitante")
 
-    modo_integracao = st.toggle(
-        "Habilitar envio para API de backlog",
-        value=False
-    )
+col1, col2 = st.columns(2)
 
-    st.caption(
-        "Quando habilitado, o payload JSON gerado pela análise poderá ser enviado "
-        "para um sistema de backlog da Engenharia de Processos."
-    )
+with col1:
+    nome = st.text_input("Nome completo")
 
-    api_url_editavel = st.text_input(
-        "URL da API de backlog",
-        value=API_BACKLOG_URL
-    )
+with col2:
+    email = st.text_input("E-mail corporativo")
 
-    simular_envio = st.toggle(
-        "Simular envio sem chamar API real",
-        value=True
-    )
+area_negocio = st.text_input("Área de negócio")
 
+st.markdown("### Solicitação")
 
 tipo_entrada = st.radio(
     "Como deseja informar a solicitação?",
-    ["Texto livre", "E-mail colado", "PDF"]
+    ["Texto livre", "PDF"]
 )
 
 solicitacao = ""
@@ -395,13 +400,6 @@ if tipo_entrada == "Texto livre":
         "Digite a solicitação não estruturada:",
         height=220,
         placeholder="Ex: O processo de onboarding está demorando muito..."
-    )
-
-elif tipo_entrada == "E-mail colado":
-    solicitacao = st.text_area(
-        "Cole aqui o conteúdo do e-mail:",
-        height=260,
-        placeholder="Cole o corpo do e-mail recebido pela área de negócio..."
     )
 
 elif tipo_entrada == "PDF":
@@ -417,24 +415,28 @@ elif tipo_entrada == "PDF":
             st.write(solicitacao)
 
 
-if st.button("Analisar solicitação", type="primary"):
-    if not solicitacao.strip():
-        st.warning("Informe uma solicitação antes de executar a análise.")
+if st.button("Enviar solicitação", type="primary"):
+    if not nome.strip():
+        st.warning("Informe o nome do solicitante.")
+    elif not email.strip():
+        st.warning("Informe o e-mail do solicitante.")
+    elif not validar_email(email):
+        st.warning("Informe um e-mail válido.")
+    elif not area_negocio.strip():
+        st.warning("Informe a área de negócio.")
+    elif not solicitacao.strip():
+        st.warning("Informe uma solicitação antes de enviar.")
     else:
         try:
-            with st.spinner("Executando análise multiagente..."):
+            with st.spinner("Analisando e enviando solicitação..."):
                 resultado = executar_crew(solicitacao)
 
             resultado_texto = str(resultado)
             payload_json = extrair_json_da_resposta(resultado_texto)
 
-            markdown_analise = remover_json_da_resposta(resultado_texto)
-            markdown_analise = limpar_markdown(markdown_analise)
-
-            st.success("Análise concluída com sucesso!")
-
-            st.markdown("## Síntese:")
-            renderizar_analise_amigavel(markdown_analise)
+            markdown_analise = limpar_markdown(
+                remover_json_da_resposta(resultado_texto)
+            )
 
             pdf_analise = gerar_pdf_analise(markdown_analise)
 
@@ -445,41 +447,36 @@ if st.button("Analisar solicitação", type="primary"):
                 mime="application/pdf"
             )
 
-            st.markdown("---")
-            st.markdown("## Integração com backlog")
-
             if payload_json:
-                st.download_button(
-                    label="Baixar payload JSON de integração",
-                    data=json.dumps(payload_json, ensure_ascii=False, indent=2),
-                    file_name="payload_backlog.json",
-                    mime="application/json"
-                )
+                try:
+                    with st.spinner("Enviando solicitação para o sistema de backlog..."):
+                        enviar_payload_para_backlog(
+                            payload=payload_json,
+                            api_url=API_BACKLOG_URL,
+                            nome=nome,
+                            email=email,
+                            area_negocio=area_negocio,
+                            markdown_analise=markdown_analise
+                        )
 
-                if modo_integracao:
-                    if simular_envio:
-                        st.success("Envio simulado com sucesso. Nenhuma API real foi chamada.")
-                    else:
-                        try:
-                            with st.spinner("Enviando payload para API de backlog..."):
-                                enviar_payload_para_backlog(
-                                    payload_json,
-                                    api_url_editavel
-                                )
+                    id_externo = payload_json.get("id_externo", "não informado")
 
-                            st.success("Payload enviado com sucesso para o sistema de backlog.")
+                    st.success(
+                        f"Solicitação nº {id_externo} enviada com sucesso! "
+                        "Em breve a área de processos entrará em contato."
+                    )
 
-                        except Exception as api_error:
-                            st.warning(
-                                "A análise foi gerada com sucesso, mas houve erro ao enviar "
-                                "o payload para a API de backlog."
-                            )
-                            st.exception(api_error)
+                except Exception as api_error:
+                    st.warning(
+                        "A análise foi gerada com sucesso, mas houve erro ao enviar "
+                        "a solicitação para o sistema de backlog."
+                    )
+                    st.exception(api_error)
 
             else:
                 st.warning(
                     "A análise foi concluída, mas não foi possível localizar "
-                    "um payload JSON válido."
+                    "um payload JSON válido para integração."
                 )
 
         except Exception as e:
