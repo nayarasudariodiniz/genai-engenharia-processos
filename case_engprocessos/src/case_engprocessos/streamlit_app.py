@@ -287,14 +287,19 @@ def gerar_pdf_analise(markdown_analise: str) -> bytes:
 
 
 def converter_payload_para_supabase(payload: dict) -> dict:
+    solicitacao = payload.get("solicitacao", {})
+    classificacao = payload.get("classificacao", {})
+    diagnostico = payload.get("diagnostico", {})
+    recomendacao = payload.get("recomendacao", {})
+
     return {
-        "id_externo": payload.get("id_externo"),
-        "criticidade": payload.get("classificacao", {}).get("criticidade"),
-        "score_criticidade": payload.get("classificacao", {}).get("score_criticidade"),
-        "processo_impactado": payload.get("solicitacao", {}).get("processo_impactado"),
-        "resumo_executivo": payload.get("solicitacao", {}).get("resumo_executivo"),
-        "impacto_operacional": payload.get("diagnostico", {}).get("impacto_operacional"),
-        "abordagem_recomendada": payload.get("recomendacao", {}).get("abordagem_recomendada"),
+        "id_externo": payload.get("id_externo", "não informado"),
+        "criticidade": classificacao.get("criticidade", "não informado"),
+        "score_criticidade": classificacao.get("score_criticidade", 0),
+        "processo_impactado": solicitacao.get("processo_impactado", "não informado"),
+        "resumo_executivo": solicitacao.get("resumo_executivo", "não informado"),
+        "impacto_operacional": diagnostico.get("impacto_operacional", "não informado"),
+        "abordagem_recomendada": recomendacao.get("abordagem_recomendada", "não informado"),
         "payload": payload
     }
 

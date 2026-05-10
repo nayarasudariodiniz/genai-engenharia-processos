@@ -1,249 +1,279 @@
 intake_structuring_task:
   description: >
-    Receber a seguinte solicitação operacional não estruturada informada dinamicamente pelo usuário:
+    Receber a solicitação operacional não estruturada enviada pela área de negócio.
 
-    {topic}
-
-    Realizar a triagem inicial considerando contexto bancário, Engenharia de Processos,
-    governança e eficiência operacional.
-
-    Executar:
-    - Limpeza e normalização textual;
-    - Remoção de ambiguidades, ruídos e subjetividades;
-    - Padronização da linguagem corporativa;
-    - Identificação do processo operacional afetado;
-    - Identificação de áreas de negócio envolvidas;
-    - Identificação de sistemas e interfaces mencionadas;
-    - Identificação de sintomas operacionais relatados;
-    - Identificação de indícios de retrabalho, gargalos, handoffs ou falhas operacionais;
-    - Identificação de lacunas críticas de contexto;
-    - Consolidação das informações em formato rastreável e padronizado.
+    Objetivo:
+    - Normalizar a linguagem;
+    - Remover ambiguidades;
+    - Identificar contexto operacional;
+    - Identificar processo impactado;
+    - Identificar áreas envolvidas;
+    - Identificar sistemas mencionados;
+    - Identificar sintomas operacionais;
+    - Identificar lacunas críticas de contexto.
 
     Regras:
-    - Não ignore a solicitação informada em {topic};
-    - Não invente áreas, sistemas, responsáveis ou métricas que não estejam mencionados;
-    - Quando uma informação não estiver disponível, registre como "não informado";
-    - Não trate o contexto geral do banco como se fosse a solicitação específica;
-    - A análise deve ser baseada prioritariamente no conteúdo de {topic}.
+    - Ser objetivo e direto;
+    - Evitar repetições;
+    - Não criar explicações extensas;
+    - Não adicionar informações não presentes na solicitação.
+
+    Solicitação recebida:
+    {topic}
 
   expected_output: >
-    Documento estruturado de intake contendo:
-    - Resumo executivo padronizado da solicitação;
-    - Processo operacional impactado;
-    - Áreas de negócio envolvidas;
-    - Sistemas e integrações mencionadas;
-    - Sintomas operacionais identificados;
-    - Possíveis sinais de gargalo ou retrabalho;
-    - Problema principal identificado;
-    - Contexto operacional consolidado;
-    - Informações ausentes, inconsistentes ou pendentes;
-    - Registro estruturado e rastreável da demanda.
+    Markdown obrigatório usando exatamente esta estrutura:
+
+    ## 1. Solicitação Normalizada
+
+    ## 2. Processo Impactado
+
+    ## 3. Áreas Envolvidas
+
+    ## 4. Sistemas Mencionados
+
+    ## 5. Sintomas Identificados
+
+    ## 6. Lacunas de Contexto
+
+    Respostas curtas, objetivas e padronizadas.
 
   agent: intake_analyst_agent
 
 
 process_diagnosis_task:
   description: >
-    Analisar a solicitação operacional não estruturada informada pelo usuário:
+    Analisar a solicitação estruturada e identificar possíveis gargalos operacionais,
+    riscos, handoffs excessivos, retrabalho e hipóteses iniciais de causa-raiz.
 
-    {topic}
-
-    Utilizar também o resultado da etapa anterior de intake como contexto principal para aprofundar
-    o diagnóstico processual.
-
-    Realizar análise operacional transversal considerando:
-    - Fluxo ponta a ponta do processo;
-    - Dependências entre áreas;
-    - Interações entre sistemas;
-    - Gargalos operacionais;
-    - Excesso de transferências entre times;
-    - Retrabalho manual;
-    - Ausência de padronização;
-    - Riscos operacionais;
-    - Fragilidades de controle;
-    - Ineficiências sistêmicas;
-    - Possíveis impactos em SLA, produtividade e experiência do cliente.
-
-    Aplicar frameworks e abordagens como:
-    - Lean;
-    - BPM;
-    - SIPOC;
-    - Ishikawa;
-    - 5 Porquês;
-    - Análise de desperdícios;
-    - Análise de handoffs.
+    Considerar:
+    - Eficiência operacional;
+    - Experiência do cliente;
+    - Risco operacional;
+    - Dependência manual;
+    - Falhas de integração;
+    - Retrabalho;
+    - SLA.
 
     Regras:
-    - Basear o diagnóstico na solicitação {topic} e no intake estruturado;
-    - Não inferir informações que não estejam explícitas ou razoavelmente derivadas da solicitação;
-    - Separar fatos informados de hipóteses;
-    - Quando uma causa-raiz for hipótese, marcar explicitamente como "hipótese";
-    - Não criar nomes fictícios de sistemas, áreas ou indicadores.
+    - Não repetir informações já existentes;
+    - Utilizar linguagem executiva;
+    - Priorizar clareza e síntese.
 
   expected_output: >
-    Diagnóstico processual estruturado contendo:
-    - Categoria do problema operacional;
-    - Principais gargalos identificados;
-    - Possíveis causas-raiz, sinalizadas como hipóteses quando aplicável;
-    - Sintomas operacionais correlacionados;
-    - Pontos de retrabalho ou desperdício;
-    - Áreas potencialmente impactadas;
-    - Riscos operacionais percebidos;
-    - Frameworks e metodologias aplicáveis;
-    - Diagnóstico técnico inicial da Engenharia de Processos.
+    Markdown obrigatório usando exatamente esta estrutura:
+
+    ## 1. Gargalos Identificados
+
+    ## 2. Possíveis Causas-Raiz
+
+    ## 3. Impactos Operacionais
+
+    ## 4. Riscos Associados
+
+    ## 5. Hipóteses de Investigação
+
+    Utilizar bullets curtos.
 
   agent: process_diagnosis_agent
-  context:
-    - intake_structuring_task
 
 
 prioritization_task:
   description: >
-    Classificar a criticidade, severidade e prioridade da seguinte solicitação operacional:
+    Classificar criticidade e prioridade operacional da solicitação.
 
-    {topic}
-
-    Utilizar como base o intake estruturado e o diagnóstico processual das etapas anteriores.
-
-    Considerar critérios utilizados em ambientes bancários regulados, incluindo:
-    - Impacto operacional;
+    Considerar:
     - Impacto financeiro;
-    - Impacto regulatório;
-    - Risco operacional;
-    - Compliance;
-    - Impacto na experiência do cliente;
-    - Volume e recorrência;
-    - Impacto em SLA;
-    - Dependência entre áreas;
-    - Potencial de escalonamento do problema;
-    - Urgência da atuação.
-
-    Aplicar lógica estruturada de priorização para apoiar tomada de decisão e alocação eficiente
-    dos recursos de Engenharia de Processos.
+    - Impacto operacional;
+    - Risco regulatório;
+    - Impacto no cliente;
+    - Volume;
+    - Frequência;
+    - SLA;
+    - Retrabalho.
 
     Regras:
-    - Justificar a prioridade com base nas informações disponíveis;
-    - Não atribuir impacto financeiro ou regulatório alto sem evidência na solicitação;
-    - Quando não houver dados suficientes, indicar "não informado" ou "não evidenciado";
-    - Diferenciar fato, hipótese e recomendação;
-    - Não criar prazos ou responsáveis fictícios.
+    - Utilizar classificação padronizada;
+    - Justificar de forma curta;
+    - Evitar textos longos.
 
   expected_output: >
-    Classificação estruturada de criticidade contendo:
-    - Nível de prioridade: Baixa, Média, Alta ou Crítica;
-    - Score de criticidade de 1 a 10;
-    - Justificativa executiva da classificação;
-    - Impactos identificados;
-    - Impactos não evidenciados;
-    - Nível de risco operacional;
-    - Severidade percebida;
-    - Recomendação de urgência;
-    - Indicativo de escalonamento estratégico.
+    Markdown obrigatório usando exatamente esta estrutura:
+
+    ## 1. Criticidade
+
+    Valor permitido:
+    - Baixa
+    - Média
+    - Alta
+    - Crítica
+
+    ## 2. Score de Criticidade
+
+    Valor inteiro entre 1 e 5.
+
+    ## 3. Justificativa
+
+    ## 4. Prioridade Recomendada
+
+    Valor permitido:
+    - Backlog
+    - Prioridade Média
+    - Prioridade Alta
+    - Ação Imediata
 
   agent: prioritization_agent
-  context:
-    - intake_structuring_task
-    - process_diagnosis_task
 
 
 solution_strategy_task:
   description: >
-    Definir a melhor abordagem estratégica e metodológica para tratamento da seguinte solicitação:
+    Definir abordagem inicial recomendada para análise e evolução do processo.
 
-    {topic}
-
-    Utilizar como insumo o intake estruturado, o diagnóstico processual e a classificação de criticidade
-    das etapas anteriores.
-
-    Avaliar alternativas como:
-    - Automação de processos;
-    - Revisão de fluxo operacional;
+    Considerar:
+    - Engenharia de Processos;
+    - Lean;
     - BPM;
-    - Kaizen;
-    - Eliminação de desperdícios;
-    - Redesenho operacional;
-    - Revisão de governança;
-    - Integração sistêmica;
-    - Padronização operacional;
-    - Revisão de controles;
-    - Investigação aprofundada;
-    - Plano de ação corretivo;
-    - Quick wins operacionais.
-
-    Definir a abordagem mais aderente para redução de retrabalho, ganho de eficiência operacional,
-    melhoria de rastreabilidade e aumento da maturidade processual.
+    - Quick wins;
+    - Governança operacional;
+    - Redução de retrabalho;
+    - Padronização;
+    - Automação.
 
     Regras:
-    - Recomendar ações coerentes com a solicitação {topic};
-    - Não sugerir automação se o problema exigir primeiro entendimento ou redesenho do processo;
-    - Separar quick wins de ações estruturantes;
-    - Não criar responsáveis, datas ou sistemas não informados;
-    - Indicar premissas e dependências quando necessário.
+    - Ser pragmático;
+    - Priorizar ações executáveis;
+    - Não gerar explicações acadêmicas.
 
   expected_output: >
-    Plano estratégico inicial contendo:
-    - Estratégia recomendada;
-    - Metodologia sugerida;
-    - Justificativa técnica;
-    - Tipo de atuação recomendada;
-    - Próximos passos sugeridos;
-    - Possíveis quick wins;
-    - Ações estruturantes;
-    - Potenciais ganhos operacionais esperados;
-    - Benefícios para governança e eficiência operacional;
-    - Premissas, dependências e informações adicionais necessárias.
+    Markdown obrigatório usando exatamente esta estrutura:
+
+    ## 1. Abordagem Recomendada
+
+    ## 2. Quick Wins
+
+    ## 3. Ações Estruturantes
+
+    ## 4. Áreas que Devem Participar
+
+    ## 5. Próximos Passos
+
+    Utilizar bullets curtos e objetivos.
 
   agent: solution_strategy_agent
-  context:
-    - intake_structuring_task
-    - process_diagnosis_task
-    - prioritization_task
 
 
 governance_reporting_task:
   description: >
-    Consolidar todas as análises produzidas pelos agentes anteriores em uma saída executiva,
-    institucional, padronizada e rastreável para a seguinte solicitação original:
+    Consolidar todas as análises anteriores e gerar o relatório executivo final
+    para apoio à tomada de decisão da Engenharia de Processos.
 
-    {topic}
+    O relatório deve ser:
+    - Executivo;
+    - Objetivo;
+    - Padronizado;
+    - Rastreável;
+    - Consistente entre execuções.
 
-    O relatório final deve apoiar a tomada de decisão da Engenharia de Processos do banco,
-    mantendo foco na solicitação dinâmica informada pelo usuário.
-
-    Estruturar o relatório para:
-    - Tomada de decisão;
-    - Governança operacional;
-    - Priorização institucional;
-    - Auditoria;
-    - Compliance;
-    - Rastreabilidade histórica;
-    - Encaminhamento para backlog, squads, projetos estruturantes ou quick wins.
-
-    Regras:
-    - Consolidar os outputs anteriores sem repetir textos longos desnecessariamente;
-    - Não inventar dados ausentes;
-    - Marcar como "não informado" tudo que não estiver disponível;
-    - Separar fatos identificados, hipóteses e recomendações;
-    - Manter linguagem executiva, objetiva e corporativa;
-    - A saída deve ser baseada na solicitação {topic} e não apenas no contexto geral do banco.
-
-    Utilize obrigatoriamente a tool "Gerador JSON de Integração com Backlog" para gerar ao final um payload JSON estruturado pronto para integração via API.
+    Regras obrigatórias:
+    - Não alterar os títulos;
+    - Não alterar a estrutura;
+    - Não remover seções;
+    - Não gerar conteúdo fora do template;
+    - Não explicar o JSON;
+    - Não usar markdown dentro do JSON.
 
   expected_output: >
-    Relatório executivo estruturado em markdown e, ao final, um payload JSON válido para integração com sistema de backlog contendo:
-    - id_externo;
-    - data_criacao;
-    - origem;
-    - tipo_registro;
-    - solicitacao;
-    - classificacao;
-    - diagnostico;
-    - recomendacao;
-    - governanca.
+    A resposta final deve possuir obrigatoriamente DUAS PARTES.
+
+    --------------------------------------------------
+    PARTE 1 — RELATÓRIO EXECUTIVO
+    --------------------------------------------------
+
+    Usar exatamente esta estrutura:
+
+    # Análise Estruturada da Solicitação
+
+    ## 1. Resumo Executivo
+
+    ## 2. Solicitação Normalizada
+
+    ## 3. Processo Impactado
+
+    ## 4. Áreas Envolvidas
+
+    ## 5. Sistemas Mencionados
+
+    ## 6. Gargalos Identificados
+
+    ## 7. Possíveis Causas-Raiz
+
+    ## 8. Criticidade e Prioridade
+
+    ## 9. Impactos Operacionais
+
+    ## 10. Abordagem Recomendada
+
+    ## 11. Quick Wins
+
+    ## 12. Próximos Passos
+
+    ## 13. Encaminhamento Recomendado
+
+    O relatório deve:
+    - Ser conciso;
+    - Ser padronizado;
+    - Utilizar bullets curtos;
+    - Evitar repetição;
+    - Não ultrapassar 700 palavras.
+
+    --------------------------------------------------
+    PARTE 2 — JSON DE INTEGRAÇÃO
+    --------------------------------------------------
+
+    Gerar obrigatoriamente JSON válido usando EXATAMENTE esta estrutura:
+
+    {
+      "id_externo": "UUID_OU_IDENTIFICADOR",
+      "data_criacao": "YYYY-MM-DD HH:MM:SS",
+      "origem": "crew_ai_streamlit",
+      "tipo_registro": "demanda_engenharia_processos",
+      "solicitacao": {
+        "texto_original": "texto",
+        "resumo_executivo": "texto",
+        "processo_impactado": "texto"
+      },
+      "classificacao": {
+        "criticidade": "Baixa|Média|Alta|Crítica",
+        "score_criticidade": 1
+      },
+      "diagnostico": {
+        "impacto_operacional": "texto",
+        "gargalos_identificados": [],
+        "causas_raiz_hipoteticas": []
+      },
+      "recomendacao": {
+        "abordagem_recomendada": "texto",
+        "proximos_passos": [],
+        "encaminhamento": "texto"
+      },
+      "governanca": {
+        "status_integracao": "pronto_para_envio",
+        "sistema_destino": "backlog_engenharia_processos",
+        "versao_payload": "1.0"
+      }
+    }
+
+    Regras do JSON:
+    - Não alterar nomes das chaves;
+    - Não remover campos;
+    - Não adicionar novos campos;
+    - Sempre preencher todos os campos;
+    - Se não houver informação, usar "não informado";
+    - Listas devem ser arrays válidos;
+    - Não usar markdown;
+    - Não usar comentários;
+    - JSON deve ser parseável.
+
   agent: governance_reporting_agent
-  context:
-    - intake_structuring_task
-    - process_diagnosis_task
-    - prioritization_task
-    - solution_strategy_task
+  output_file: solicitacao_final.md
 
