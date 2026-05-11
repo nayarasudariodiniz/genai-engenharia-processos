@@ -1,4 +1,4 @@
-# 🏦 GenAI aplicada à Engenharia de Processos Bancários
+# 🏦 GenAI aplicada à Engenharia de Processos
 
 Aplicação de IA Generativa baseada em arquitetura multiagente utilizando CrewAI para automatizar a triagem, análise e estruturação de solicitações operacionais recebidas pelas áreas de negócio de um banco.
 
