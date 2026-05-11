@@ -278,11 +278,9 @@ A aplicação:
 - RAG corporativo;
 - integração com Jira/ServiceNow;
 - dashboards operacionais;
-- analytics de backlog;
 - armazenamento de PDFs no Supabase Storage;
 - autenticação corporativa;
-- histórico de análises;
-- workflow humano no loop.
+- histórico de análises
 
 ---
 
@@ -290,4 +288,4 @@ A aplicação:
 
 Nayara Oliveira Sudário Diniz
 
-Projeto desenvolvido como estudo e demonstração prática de aplicação de IA Generativa em Engenharia de Processos Bancários.
+Projeto desenvolvido como estudo e demonstração prática de aplicação de IA Generativa em Engenharia de Processos.
