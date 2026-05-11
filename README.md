@@ -28,7 +28,6 @@ Este projeto utiliza IA Generativa e arquitetura multiagente para transformar so
 
 A aplicação aceita:
 - Texto livre;
-- Conteúdo de e-mails;
 - Arquivos PDF.
 
 ---
@@ -49,7 +48,6 @@ A Crew executa:
 
 A saída é apresentada:
 - em formato visual amigável;
-- estruturada em Markdown;
 - com opção de download em PDF.
 
 ---
